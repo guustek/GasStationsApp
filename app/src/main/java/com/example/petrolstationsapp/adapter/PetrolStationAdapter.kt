@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.petrolstationsapp.R
 import com.example.petrolstationsapp.model.PetrolStation
 
-class PetrolStationAdapter(private val items: List<PetrolStation>) :
+class PetrolStationAdapter(private var items: List<PetrolStation>) :
     RecyclerView.Adapter<PetrolStationAdapter.PetrolStationViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PetrolStationViewHolder {
@@ -25,14 +25,13 @@ class PetrolStationAdapter(private val items: List<PetrolStation>) :
         return items.size
     }
 
-
     class PetrolStationViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private lateinit var item: PetrolStation
         private var textView: TextView
         private var buttonView: Button
 
         init {
-            textView = itemView.findViewById(R.id.jd)
+            textView = itemView.findViewById(R.id.name)
             buttonView = itemView.findViewById(R.id.button)
         }
 
