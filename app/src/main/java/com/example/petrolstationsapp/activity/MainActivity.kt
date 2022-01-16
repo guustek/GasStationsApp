@@ -5,19 +5,21 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Criteria
 import android.location.Location
+import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.example.petrolstationsapp.R
-import com.example.petrolstationsapp.adapter.PetrolStationAdapter
 import com.example.petrolstationsapp.databinding.ActivityMainBinding
+import com.example.petrolstationsapp.fragment.LoadingFragment
+import com.example.petrolstationsapp.fragment.MapsFragment
+import com.example.petrolstationsapp.fragment.StationsListFragment
+import com.example.petrolstationsapp.model.Coordinate
 import com.example.petrolstationsapp.model.PetrolStation
 import com.example.petrolstationsapp.utils.DataParser
 
@@ -26,48 +28,68 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var locationManager: LocationManager
-    private var placesList: List<PetrolStation> = ArrayList()
-    private lateinit var recyclerView: RecyclerView
+    private lateinit var locationListener: LocationListener
+    private var stationList: List<PetrolStation> = ArrayList()
+    private var location: Location? = null
+    private var isLocationPermissionGranted: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
-        recyclerView = binding.stationsListView
-        recyclerView.apply {
-            adapter = PetrolStationAdapter(placesList)
-            layoutManager = LinearLayoutManager(this@MainActivity)
-        }
-
-        binding.button2.setOnClickListener {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+            && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                997
+            )
+        } else {
+            isLocationPermissionGranted = true
+            super.onCreate(savedInstanceState)
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
+            locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
             val bestProvider: String = locationManager.getBestProvider(Criteria(), true).toString()
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-                    997
-                )
-            } else {
-                val location: Location? = locationManager.getLastKnownLocation(bestProvider)
-                if (location != null) {
-                    getPlaces(this,location, 2000.0,"gas_station")
+            location = locationManager.getLastKnownLocation(bestProvider)
+            if (location != null) {
+                val location = location!!
+                binding.textView2.text =
+                    DataParser.getAddressFromCoordinates(
+                        Coordinate(location.latitude, location.longitude),
+                        this
+                    )
+                getPlaces(this, location, 10000.0, "gas_station")
+                supportFragmentManager.beginTransaction().apply {
+                    supportFragmentManager.beginTransaction().apply {
+                        replace(binding.fragmentContainer.id, LoadingFragment())
+                        commit()
+                    }
+                }
+            }
+
+            binding.switchingButton.setOnClickListener {
+                val currentFragment = supportFragmentManager.fragments.last()
+                if (currentFragment is MapsFragment) {
+                    supportFragmentManager.beginTransaction().apply {
+                        replace(binding.fragmentContainer.id, StationsListFragment(stationList))
+                        commit()
+                    }
+                } else {
+                    supportFragmentManager.beginTransaction().apply {
+                        replace(binding.fragmentContainer.id, MapsFragment(location!!,stationList))
+                        commit()
+                    }
                 }
             }
         }
     }
 
-    private fun getPlaces(context: Context,location: Location,searchRadius:Double,placeType:String) {
+    private fun getPlaces(context: Context, location: Location, searchRadius: Double, placeType: String) {
         val queue: RequestQueue = Volley.newRequestQueue(context)
 
         val baseUrl = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?"
@@ -81,8 +103,11 @@ class MainActivity : AppCompatActivity() {
         val request = StringRequest(Request.Method.GET, requestUrl,
             {
                 if (it != null) {
-                    placesList = DataParser.parseNearbyPlacesResponse(it)
-                    this.recyclerView.adapter = PetrolStationAdapter(placesList)
+                    stationList = DataParser.parseNearbyPlacesResponse(it)
+                    supportFragmentManager.beginTransaction().apply {
+                        replace(binding.fragmentContainer.id, MapsFragment(location,stationList))
+                        commit()
+                    }
                 }
             },
             {
@@ -90,5 +115,4 @@ class MainActivity : AppCompatActivity() {
             })
         queue.add(request)
     }
-
 }

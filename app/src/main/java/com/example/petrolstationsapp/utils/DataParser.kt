@@ -3,7 +3,6 @@ package com.example.petrolstationsapp.utils
 import android.content.Context
 import android.location.Address
 import android.location.Geocoder
-import android.location.Location
 import com.example.petrolstationsapp.model.Coordinate
 import com.example.petrolstationsapp.model.PetrolStation
 import org.json.JSONObject
@@ -17,7 +16,7 @@ class DataParser {
             val placesList = ArrayList<PetrolStation>()
             for (i in 0 until JSONResults.length()) {
                 val ob: JSONObject = JSONResults.getJSONObject(i)
-                val name = ob.getString("name");
+                val name = ob.getString("name")
                 val JSONLocation = ob.getJSONObject("geometry").getJSONObject("location")
                 val location = Coordinate(JSONLocation.getDouble("lat"), JSONLocation.getDouble("lng"))
                 placesList.add(PetrolStation(name, location))
@@ -25,7 +24,7 @@ class DataParser {
             return placesList
         }
 
-        private fun parseLocation(location: Location,context: Context) {
+        fun getAddressFromCoordinates(location: Coordinate, context: Context): String {
             val addresses: List<Address>?
             val geocoder: Geocoder = Geocoder(context, Locale.getDefault())
             val latitude = location.latitude
@@ -39,10 +38,13 @@ class DataParser {
                     val country: String = addresses[0].countryName
                     val postalCode: String = addresses[0].postalCode
                     val knownName: String = addresses[0].featureName
+                    return "$city $address"
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
             }
+            return ""
         }
+
     }
 }

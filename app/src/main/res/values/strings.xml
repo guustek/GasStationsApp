@@ -2,6 +2,8 @@
     <string name="maps_key">AIzaSyByICzIUumIAhSy6jHuakhPgW_F22k8O1M</string>
     <string name="app_name">Petrol Stations App</string>
     <string name="title_activity_main">MainActivity</string>
-    <string name="Title">Gas Stations App</string>
+    <string name="Title">Petrol Stations </string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 
 </resources>
