@@ -1,118 +1,146 @@
 package com.example.petrolstationsapp.activity
 
-import android.Manifest
+import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.Context
-import android.content.pm.PackageManager
-import android.location.Criteria
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
+import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
+import android.view.Menu
+import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
+import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.findNavController
+import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.navigateUp
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.example.petrolstationsapp.R
 import com.example.petrolstationsapp.databinding.ActivityMainBinding
-import com.example.petrolstationsapp.fragment.LoadingFragment
-import com.example.petrolstationsapp.fragment.MapsFragment
-import com.example.petrolstationsapp.fragment.StationsListFragment
-import com.example.petrolstationsapp.model.Coordinate
-import com.example.petrolstationsapp.model.PetrolStation
+import com.example.petrolstationsapp.viewmodel.SearchData
+import com.example.petrolstationsapp.viewmodel.SearchDataViewModel
+import com.example.petrolstationsapp.viewmodel.StationViewModel
 import com.example.petrolstationsapp.utils.DataParser
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.material.snackbar.Snackbar
 
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        const val LOCATION_PERMISSIONS_REQUEST_CODE = 997
+    }
+
+    private val radius = 5000
+
+    private lateinit var appBarConfiguration: AppBarConfiguration
+
     private lateinit var binding: ActivityMainBinding
-    private lateinit var locationManager: LocationManager
-    private lateinit var locationListener: LocationListener
-    private var stationList: List<PetrolStation> = ArrayList()
-    private var location: Location? = null
-    private var isLocationPermissionGranted: Boolean = false
 
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+    private lateinit var stationsModel: StationViewModel
+    private lateinit var searchDataModel: SearchDataViewModel
+
+    @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-            && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-                997
-            )
-        } else {
-            isLocationPermissionGranted = true
-            super.onCreate(savedInstanceState)
-            binding = ActivityMainBinding.inflate(layoutInflater)
-            setContentView(binding.root)
-            locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-            val bestProvider: String = locationManager.getBestProvider(Criteria(), true).toString()
-            location = locationManager.getLastKnownLocation(bestProvider)
-            if (location != null) {
-                val location = location!!
-                binding.textView2.text =
-                    DataParser.getAddressFromCoordinates(
-                        Coordinate(location.latitude, location.longitude),
-                        this
-                    )
-                getPlaces(this, location, 10000.0, "gas_station")
-                supportFragmentManager.beginTransaction().apply {
-                    supportFragmentManager.beginTransaction().apply {
-                        replace(binding.fragmentContainer.id, LoadingFragment())
-                        commit()
-                    }
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
+
+//        val navController = findNavController(R.id.nav_host_fragment_content_main)
+//        appBarConfiguration = AppBarConfiguration(navController.graph)
+//        setupActionBarWithNavController(navController, appBarConfiguration)
+        stationsModel = ViewModelProvider(this)[StationViewModel::class.java]
+        searchDataModel = ViewModelProvider(this)[SearchDataViewModel::class.java]
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        fusedLocationClient.lastLocation.addOnSuccessListener {
+            if (it != null) {
+                searchDataModel.searchData.value = SearchData(it.latitude, it.longitude, radius)
+                stationsModel.stations.value = ArrayList()
+            }
+        }
+
+
+
+        binding.button.setOnClickListener {
+            fusedLocationClient.lastLocation.addOnSuccessListener {
+                if (it != null) {
+//                    binding.textView2.text =
+//                        DataParser.getAddressFromCoordinates(Coordinate(it.latitude, it.longitude), this)
+                    searchDataModel.searchData.value = SearchData(it.latitude, it.longitude, radius)
+                    getPlaces(this, it.latitude, it.longitude, radius, "gas station")
+                } else {
+                    Snackbar.make(
+                        binding.root,
+                        "Nie udało się pobrać aktualnej lokalizacji!",
+                        Snackbar.LENGTH_LONG
+                    ).show()
                 }
             }
 
-            binding.switchingButton.setOnClickListener {
-                val currentFragment = supportFragmentManager.fragments.last()
-                if (currentFragment is MapsFragment) {
-                    supportFragmentManager.beginTransaction().apply {
-                        replace(binding.fragmentContainer.id, StationsListFragment(stationList))
-                        commit()
-                    }
-                } else {
-                    supportFragmentManager.beginTransaction().apply {
-                        replace(binding.fragmentContainer.id, MapsFragment(location!!,stationList))
-                        commit()
-                    }
-                }
-            }
         }
     }
 
-    private fun getPlaces(context: Context, location: Location, searchRadius: Double, placeType: String) {
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        return when (item.itemId) {
+            R.id.settings -> true
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        val navController = findNavController(R.id.nav_host_fragment_content_main)
+        return navController.navigateUp(appBarConfiguration)
+                || super.onSupportNavigateUp()
+    }
+
+    private fun getPlaces(context: Context, latitude: Double, longitude: Double, radius: Int, placeType: String) {
         val queue: RequestQueue = Volley.newRequestQueue(context)
 
         val baseUrl = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?"
         val builder: StringBuilder = StringBuilder()
         builder.append(baseUrl)
-        builder.append("location=${location.latitude},${location.longitude}")
-        builder.append("&radius=$searchRadius")
-        builder.append("&type=$placeType")
-        builder.append("&key=${getString(R.string.maps_key)}")
+        builder.append("location=$latitude,$longitude")
+        builder.append("&radius=$radius")
+        builder.append("&keyword=$placeType")
+        builder.append("&key=${getString(R.string.google_maps_key)}")
         val requestUrl: String = builder.toString()
         val request = StringRequest(Request.Method.GET, requestUrl,
             {
                 if (it != null) {
-                    stationList = DataParser.parseNearbyPlacesResponse(it)
-                    supportFragmentManager.beginTransaction().apply {
-                        replace(binding.fragmentContainer.id, MapsFragment(location,stationList))
-                        commit()
-                    }
+                    stationsModel.stations.value = DataParser.parseResponse(it)
                 }
             },
             {
                 println("Error przy get")
             })
         queue.add(request)
+    }
+
+    private fun showTurnOnGpsDialog() {
+        val alertDialog: AlertDialog.Builder = AlertDialog.Builder(this)
+        alertDialog.setMessage("GPS nie jest włączony. Czy chcesz udać się do ustawień?")
+        alertDialog.setPositiveButton("Ustawienia") { _, _ ->
+            val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+            startActivity(intent)
+        }
+
+        alertDialog.setNegativeButton("Anuluj") { dialog, _ -> dialog.cancel() }
+        alertDialog.show()
     }
 }

@@ -11,28 +11,36 @@
         android:orientation="vertical"
         tools:context=".activity.MainActivity">
 
+        <com.google.android.material.appbar.AppBarLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:theme="@style/Theme.PetrolStationsApp.AppBarOverlay">
+
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="?attr/colorPrimary"
+                app:popupTheme="@style/Theme.PetrolStationsApp.PopupOverlay" />
+
+        </com.google.android.material.appbar.AppBarLayout>
+
         <TextView
             android:id="@+id/textView2"
             android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_margin="20dp"
             android:gravity="center"
-            android:layout_height="wrap_content"
             android:text="Lokalizacja" />
 
-        <FrameLayout
-            android:id="@+id/fragment_container"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+        <Button
+            android:id="@+id/button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="Button" />
+
+        <include layout="@layout/content_main" />
 
     </LinearLayout>
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/switching_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end|bottom"
-        android:layout_margin="16dp"
-        android:clickable="true"
-        app:srcCompat="@android:drawable/ic_dialog_map"
-        android:focusable="true" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

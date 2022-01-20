@@ -1,26 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/localizeButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end|bottom"
-        android:layout_marginBottom="88dp"
-        android:layout_marginRight="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="@color/white"
-        android:src="@android:drawable/ic_menu_mylocation" />
+    android:layout_height="match_parent"
+    android:id="@+id/map_fragment_root"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <fragment
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:context=".fragment.MapsFragment" />
+        android:layout_height="match_parent" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/switching_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|bottom"
+        android:layout_margin="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:srcCompat="@android:drawable/ic_dialog_map" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
