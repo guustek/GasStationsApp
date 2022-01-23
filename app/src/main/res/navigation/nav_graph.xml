@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/mapsFragment">
+    app:startDestination="@id/loading_to_map">
 
     <fragment
         android:id="@+id/mapsFragment"
@@ -28,10 +28,7 @@
         android:label="fragment_loading"
         tools:layout="@layout/fragment_loading" >
         <action
-            android:id="@+id/action_loadingFragment_to_mapsFragment"
+            android:id="@+id/loading_to_map"
             app:destination="@id/mapsFragment" />
-        <action
-            android:id="@+id/loading_to_list"
-            app:destination="@id/stationsListFragment" />
     </fragment>
 </navigation>

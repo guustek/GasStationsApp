@@ -1,11 +1,14 @@
 package com.example.petrolstationsapp.activity
 
+import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
 import com.example.petrolstationsapp.R
 import com.example.petrolstationsapp.fragment.SettingsFragment
 
-class SettingsActivity : AppCompatActivity() {
+
+class SettingsActivity : DarkLightModeActivity(),SharedPreferences.OnSharedPreferenceChangeListener {
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -17,7 +20,24 @@ class SettingsActivity : AppCompatActivity() {
                 .commit()
         }
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title=getString(R.string.title_settings)
     }
 
+    override fun onResume() {
+        super.onResume()
+       preferences.registerOnSharedPreferenceChangeListener(this)
+    }
 
+    override fun onPause() {
+        preferences.unregisterOnSharedPreferenceChangeListener(this)
+        super.onPause()
+    }
+
+    override fun onSharedPreferenceChanged(p0: SharedPreferences?, p1: String?) {
+        if(p1=="darkMode") {
+            finish()
+            startActivity(Intent(this, javaClass))
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        }
+    }
 }

@@ -12,10 +12,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
+import com.example.petrolstationsapp.R
 import com.example.petrolstationsapp.databinding.StationInfoBinding
 import com.google.android.gms.maps.model.Marker
 
-class InfoWindowFragment(private val marker: Marker) : Fragment(){
+class InfoWindowFragment(private val marker: Marker, private val isNightMode: Boolean) : Fragment() {
 
     private var _binding: StationInfoBinding? = null
 
@@ -55,6 +56,8 @@ class InfoWindowFragment(private val marker: Marker) : Fragment(){
             mapIntent.setPackage("com.google.android.apps.maps")
             ContextCompat.startActivity(context!!, mapIntent, null)
         }
+        if (isNightMode)
+            binding.root.setBackgroundColor(resources.getColor(R.color.cardview_dark_background))
         return binding.root
     }
 

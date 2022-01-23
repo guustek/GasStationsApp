@@ -7,13 +7,12 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AppCompatActivity
 import com.example.petrolstationsapp.databinding.ActivitySplashScreenBinding
 import com.example.petrolstationsapp.utils.LocationService
 
 
 @SuppressLint("CustomSplashScreen")
-class SplashScreenActivity : AppCompatActivity() {
+class SplashScreenActivity : DarkLightModeActivity() {
 
     private lateinit var binding: ActivitySplashScreenBinding
 
@@ -25,6 +24,7 @@ class SplashScreenActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySplashScreenBinding.inflate(layoutInflater)
+
         setContentView(binding.root)
         if (!permissionDialogShown && LocationService.permissionsGranted(
                 this,
@@ -71,4 +71,5 @@ class SplashScreenActivity : AppCompatActivity() {
             }, 2000)
         }
     }
+
 }

@@ -2,6 +2,7 @@ package com.example.petrolstationsapp.fragment
 
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Bundle
@@ -18,16 +19,15 @@ import com.example.petrolstationsapp.R
 import com.example.petrolstationsapp.databinding.FragmentMapsBinding
 import com.example.petrolstationsapp.model.Location
 import com.example.petrolstationsapp.model.Station
-import com.example.petrolstationsapp.utils.LocationService
 import com.example.petrolstationsapp.viewmodel.LocationViewModel
 import com.example.petrolstationsapp.viewmodel.StationViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.*
-import com.google.android.material.snackbar.Snackbar
 
-//TODO listener internetu aby przeładować jak wróci internet
+
+
 class MapsFragment : Fragment() {
 
     private var openedInfoWindow: InfoWindow? = null
@@ -38,29 +38,40 @@ class MapsFragment : Fragment() {
     private lateinit var locationModel: LocationViewModel
     private var cameraZoomLevel: Float = 11f
     private lateinit var preferences: SharedPreferences
+    private var firstLoad: Boolean = true
+    private var networkChangeReceiver: BroadcastReceiver? = null
 
     private val binding get() = _binding!!
 
 
     @SuppressLint("MissingPermission")
     private val callback = OnMapReadyCallback { googleMap ->
-        if(!LocationService.isInternetAvailable(context!!))
-            Snackbar.make(activity!!.findViewById(R.id.main_activity_root),"Nie udało się załadować mapy. Brak połączenia internetowego!", Snackbar.LENGTH_INDEFINITE).show()
         map = googleMap
+        if (preferences.getBoolean("darkMode", false)) {
+            map.setMapStyle(
+                MapStyleOptions.loadRawResourceStyle(
+                    activity!!, R.raw.map_night_style
+                )
+            )
+        }
         map.isMyLocationEnabled = true
         map.uiSettings.isMyLocationButtonEnabled = true
         map.uiSettings.isMapToolbarEnabled = false
         //map.setInfoWindowAdapter(MarkerInfoWindowAdapter(context!!))
         map.setOnMarkerClickListener {
             if (!it.isDraggable) {
-                openedInfoWindow = InfoWindow(it, InfoWindow.MarkerSpecification(0, 100), InfoWindowFragment(it))
+                openedInfoWindow = InfoWindow(
+                    it,
+                    InfoWindow.MarkerSpecification(0, 100),
+                    InfoWindowFragment(it, preferences.getBoolean("darkMode", false))
+                )
                 mapFragment?.infoWindowManager()?.toggle(openedInfoWindow!!, true)
             }
             true
         }
         map.setOnMarkerDragListener(object : GoogleMap.OnMarkerDragListener {
             override fun onMarkerDrag(p0: Marker) {
-                map.animateCamera(CameraUpdateFactory.newLatLng(p0.position))
+                map.moveCamera(CameraUpdateFactory.newLatLng(p0.position))
             }
 
             override fun onMarkerDragEnd(p0: Marker) {
@@ -69,11 +80,28 @@ class MapsFragment : Fragment() {
             }
 
             override fun onMarkerDragStart(p0: Marker) {
+                map.moveCamera(CameraUpdateFactory.newLatLng(p0.position))
             }
 
         })
         map.setOnCameraIdleListener {
             cameraZoomLevel = map.cameraPosition.zoom
+        }
+        if (firstLoad) {
+            if (locationModel.location.value != null) {
+                firstLoad = false
+                map.clear()
+                map.moveCamera(CameraUpdateFactory.zoomTo(cameraZoomLevel))
+                map.moveCamera(
+                    CameraUpdateFactory.newLatLng(
+                        LatLng(
+                            locationModel.location.value!!.latitude,
+                            locationModel.location.value!!.longitude
+                        )
+                    )
+                )
+                updateMarkers()
+            }
         }
     }
 
@@ -88,6 +116,13 @@ class MapsFragment : Fragment() {
             if (key == "showCircle")
                 updateMarkers()
         }
+//        if(networkChangeReceiver==null){
+//            networkChangeReceiver = object : BroadcastReceiver() {
+//                override fun onReceive(p0: Context?, p1: Intent?) {
+//                   // mapFragment?.getMapAsync(callback)
+//                }
+//            }
+//        }
         binding.switchingButton.setOnClickListener {
             Navigation.findNavController(binding.root).navigate(R.id.map_to_list)
         }
@@ -95,11 +130,12 @@ class MapsFragment : Fragment() {
         locationModel = ViewModelProvider(requireActivity())[LocationViewModel::class.java]
         locationModel.location.observe(viewLifecycleOwner) {
             if (this::map.isInitialized) {
+                firstLoad = false
                 map.clear()
                 if (openedInfoWindow != null)
                     mapFragment?.infoWindowManager()?.hide(openedInfoWindow!!)
-                map.moveCamera(CameraUpdateFactory.zoomTo(cameraZoomLevel))
-                map.moveCamera(CameraUpdateFactory.newLatLng(LatLng(it.latitude, it.longitude)))
+                map.animateCamera(CameraUpdateFactory.zoomTo(cameraZoomLevel))
+                map.animateCamera(CameraUpdateFactory.newLatLng(LatLng(it.latitude, it.longitude)))
                 updateMarkers()
             }
         }
@@ -116,8 +152,7 @@ class MapsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mapFragment = childFragmentManager.findFragmentById(R.id.map) as MapInfoWindowFragment?
-        //mapFragment?.infoWindowManager()?.setHideOnFling(true)
-        //if(LocationService.permissionsGranted(activity!!,LocationService.ON_MAP_LOAD_PERMISSIONS_CODE))
+
         mapFragment?.getMapAsync(callback)
     }
 
@@ -128,6 +163,7 @@ class MapsFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        // activity?.registerReceiver(networkChangeReceiver,IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"))
         if (this::map.isInitialized) {
             map.clear()
             updateMarkers()

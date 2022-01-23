@@ -3,16 +3,16 @@ package com.example.petrolstationsapp.activity
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Bundle
+import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
-import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.navigateUp
-import androidx.preference.PreferenceManager
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.StringRequest
@@ -34,31 +34,34 @@ import com.google.android.libraries.places.widget.listener.PlaceSelectionListene
 import com.google.android.material.snackbar.Snackbar
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : DarkLightModeActivity() {
 
     companion object {
         var permissionDialogShown: Boolean = false
     }
 
-    private val radius = 5000
-
+    private val AUTOCOMPLETE_RESULT_CODE: Int = 2115
     private lateinit var appBarConfiguration: AppBarConfiguration
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationManager: LocationManager
+    private lateinit var networkLocationListener: LocationListener
+    private lateinit var gpsLocationListener: LocationListener
 
     private lateinit var stationsModel: StationViewModel
     private lateinit var locationModel: LocationViewModel
     private lateinit var binding: ActivityMainBinding
-    private lateinit var preferences: SharedPreferences
 
 
     @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
+
         setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayShowTitleEnabled(false)
         setContentView(binding.root)
-        preferences = PreferenceManager.getDefaultSharedPreferences(this)
+
 
         stationsModel = ViewModelProvider(this)[StationViewModel::class.java]
         locationModel = ViewModelProvider(this)[LocationViewModel::class.java]
@@ -66,47 +69,66 @@ class MainActivity : AppCompatActivity() {
         Places.initialize(applicationContext, getString(R.string.google_maps_key))
         val placesClient = Places.createClient(this)
 
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        fusedLocationClient.lastLocation.addOnSuccessListener {
-            if (it != null) {
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+        gpsLocationListener = LocationListener {
+            if (locationModel.location.value == null) {
                 locationModel.location.value = Location(it.latitude, it.longitude)
-                stationsModel.stations.value = ArrayList()
-            } else {
-                Snackbar.make(
-                    binding.root,
-                    "Nie udało się pobrać aktualnej lokalizacji!",
-                    Snackbar.LENGTH_LONG
-                ).show()
-            }
+                locationManager.removeUpdates(gpsLocationListener)
+            } else
+                locationManager.removeUpdates(gpsLocationListener)
         }
+        networkLocationListener = LocationListener {
+            if (locationModel.location.value == null) {
+                locationModel.location.value = Location(it.latitude, it.longitude)
+                locationManager.removeUpdates(networkLocationListener)
+            } else
+                locationManager.removeUpdates(networkLocationListener)
+        }
+
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, gpsLocationListener)
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0f, networkLocationListener)
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         binding.locationButton.setOnClickListener {
             fusedLocationClient.lastLocation.addOnSuccessListener {
                 if (it != null) {
                     locationModel.location.value = Location(it.latitude, it.longitude)
                 } else {
-                    Snackbar.make(
-                        binding.root,
-                        "Nie udało się pobrać aktualnej lokalizacji!",
-                        Snackbar.LENGTH_LONG
-                    ).show()
+                    val builder = AlertDialog.Builder(this)
+                    builder.apply {
+                        setMessage("Lokalizacja wyłączona, czy chcesz ją włączyć?")
+                        setCancelable(true)
+                        setPositiveButton("Tak") { _, _ ->
+                            startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                        }
+
+                        setNegativeButton(
+                            "Zamknij"
+                        ) { dialog, _ ->
+                            dialog.cancel()
+                        }
+                    }
+                    builder.create()
+                    builder.show()
                 }
             }
         }
 
         binding.searchButton.setOnClickListener {
-                val location = locationModel.location.value
-                if (location != null)
-                    getPlaces(
-                        this, location.latitude, location.longitude,
-                        preferences.getString("searchRadius", "5000.0")?.toDouble() ?: 5000.0
-                    )
-                else {
-                    Snackbar.make(
-                        binding.root,
-                        "Nie wybrano lokalizacji!",
-                        Snackbar.LENGTH_LONG
-                    ).show()
-                }
+            val location = locationModel.location.value
+            if (location != null)
+                getPlaces(
+                    this, location.latitude, location.longitude,
+                    preferences.getString("searchRadius", "5000.0")?.toDouble() ?: 5000.0
+                )
+            else {
+                Snackbar.make(
+                    binding.root,
+                    "Nie wybrano lokalizacji!",
+                    Snackbar.LENGTH_LONG
+                ).show()
+            }
 //            else{
 //                Snackbar.make(
 //                    binding.root,
@@ -121,7 +143,8 @@ class MainActivity : AppCompatActivity() {
         autocompleteFragment!!.setTypeFilter(TypeFilter.ADDRESS)
         autocompleteFragment.setPlaceFields(
             listOf(
-                Place.Field.LAT_LNG
+                Place.Field.LAT_LNG,
+                Place.Field.ADDRESS
             )
         )
         autocompleteFragment.setOnPlaceSelectedListener(
@@ -132,7 +155,6 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onError(status: Status) {
-                    Snackbar.make(binding.root, "Nie wybrano lokalizacji!", Snackbar.LENGTH_LONG).show()
                 }
             })
     }
@@ -140,6 +162,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.menu_main, menu)
+        if (preferences.getBoolean("darkMode", false))
+            menu.getItem(0).icon = getDrawable(R.drawable.search_white)
         return true
     }
 
@@ -159,7 +183,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onSupportNavigateUp(): Boolean {
         val navController = findNavController(R.id.nav_host_fragment_content_main)
-        return navController.navigateUp(appBarConfiguration)
+        return navController.navigateUp()
                 || super.onSupportNavigateUp()
     }
 
@@ -184,7 +208,7 @@ class MainActivity : AppCompatActivity() {
                 }
             },
             {
-               Snackbar.make(binding.root,"Brak połączenia internetowego!",Snackbar.LENGTH_INDEFINITE).show()
+                Snackbar.make(binding.root, "Brak połączenia internetowego!", Snackbar.LENGTH_INDEFINITE).show()
             })
         queue.add(request)
     }
