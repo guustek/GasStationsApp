@@ -4,6 +4,7 @@ data class Station(
     val name: String?,
     val location: Location,
     val address: String?,
-    val rating: Double?,
-    val isOpenNow: Boolean?
+    val rating: Float?,
+    val isOpenNow: Boolean?,
+    val ratingsCount: Int?
 )

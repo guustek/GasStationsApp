@@ -10,7 +10,8 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/stations_list_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent"
+        android:scrollbars="vertical">
 
     </androidx.recyclerview.widget.RecyclerView>
 
@@ -19,9 +20,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"
-        android:layout_margin="16dp"
+        android:layout_margin="20dp"
         android:clickable="true"
-        app:srcCompat="@android:drawable/ic_dialog_map"
-        android:focusable="true" />
+        android:focusable="true"
+        app:srcCompat="@drawable/map_view_icon" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

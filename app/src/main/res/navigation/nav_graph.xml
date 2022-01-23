@@ -30,5 +30,8 @@
         <action
             android:id="@+id/action_loadingFragment_to_mapsFragment"
             app:destination="@id/mapsFragment" />
+        <action
+            android:id="@+id/loading_to_list"
+            app:destination="@id/stationsListFragment" />
     </fragment>
 </navigation>

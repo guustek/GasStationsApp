@@ -37,7 +37,7 @@ class StationsListFragment : Fragment() {
 
 
         binding.stationsListView.apply {
-            adapter = StationAdapter()
+            adapter = StationAdapter(context)
             layoutManager = LinearLayoutManager(context)
         }
         binding.switchingButton.setOnClickListener {

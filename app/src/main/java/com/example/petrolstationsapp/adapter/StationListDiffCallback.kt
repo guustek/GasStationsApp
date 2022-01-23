@@ -3,7 +3,7 @@ package com.example.petrolstationsapp.adapter
 import androidx.recyclerview.widget.DiffUtil
 import com.example.petrolstationsapp.model.Station
 
-class StationListDiffCallback(var oldList: List<Station>, var newList: List<Station>) : DiffUtil.Callback() {
+class StationListDiffCallback(private var oldList: List<Station>, private var newList: List<Station>) : DiffUtil.Callback() {
 
     override fun getOldListSize() = oldList.size
     override fun getNewListSize() = newList.size
