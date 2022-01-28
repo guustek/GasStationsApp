@@ -33,7 +33,7 @@
         <fragment
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:name="com.example.petrolstationsapp.fragment.AutocompleteFragmentWithDarkMode"
+            android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"
             android:id="@+id/autocomplete_fragment" />
         </androidx.cardview.widget.CardView>
 

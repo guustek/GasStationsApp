@@ -11,8 +11,8 @@ import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.Navigation
 import androidx.navigation.findNavController
-import androidx.navigation.ui.AppBarConfiguration
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.StringRequest
@@ -41,7 +41,6 @@ class MainActivity : DarkLightModeActivity() {
     }
 
     private val AUTOCOMPLETE_RESULT_CODE: Int = 2115
-    private lateinit var appBarConfiguration: AppBarConfiguration
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationManager: LocationManager
@@ -86,10 +85,37 @@ class MainActivity : DarkLightModeActivity() {
                 locationManager.removeUpdates(networkLocationListener)
         }
 
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, gpsLocationListener)
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0f, networkLocationListener)
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) && !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER))
+            buildNoGpsAlert()
+        else {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, gpsLocationListener)
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0f, networkLocationListener)
+        }
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+//        fusedLocationClient.lastLocation.addOnSuccessListener {
+//            if (it != null) {
+//                locationModel.location.value = Location(it.latitude, it.longitude)
+//            } else {
+//                val builder = AlertDialog.Builder(this)
+//                builder.apply {
+//                    setMessage("Lokalizacja wyłączona, czy chcesz ją włączyć?")
+//                    setCancelable(true)
+//                    setPositiveButton("Tak") { _, _ ->
+//                        startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+//                    }
+//
+//                    setNegativeButton(
+//                        "Zamknij"
+//                    ) { dialog, _ ->
+//                        dialog.cancel()
+//                    }
+//                }
+//                builder.create()
+//                builder.show()
+//            }
+//        }
+
         binding.locationButton.setOnClickListener {
             fusedLocationClient.lastLocation.addOnSuccessListener {
                 if (it != null) {
@@ -162,8 +188,8 @@ class MainActivity : DarkLightModeActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.menu_main, menu)
-        if (preferences.getBoolean("darkMode", false))
-            menu.getItem(0).icon = getDrawable(R.drawable.search_white)
+//        if (preferences.getBoolean("darkMode", false))
+//            menu.getItem(0).icon = getDrawable(R.drawable.search_white)
         return true
     }
 
@@ -189,8 +215,9 @@ class MainActivity : DarkLightModeActivity() {
 
 
     private fun getPlaces(context: Context, latitude: Double, longitude: Double, radius: Double) {
-        val queue: RequestQueue = Volley.newRequestQueue(context)
 
+
+        val queue: RequestQueue = Volley.newRequestQueue(context)
         val baseUrl = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?"
         val builder: StringBuilder = StringBuilder()
         builder.append(baseUrl)
@@ -211,5 +238,32 @@ class MainActivity : DarkLightModeActivity() {
                 Snackbar.make(binding.root, "Brak połączenia internetowego!", Snackbar.LENGTH_INDEFINITE).show()
             })
         queue.add(request)
+    }
+
+    private fun buildNoGpsAlert() {
+        if (locationModel.location.value == null) {
+           this.let {
+                val builder = AlertDialog.Builder(it)
+                builder.apply {
+                    setMessage("Lokalizacja wyłączona, czy chcesz ją włączyć?")
+                    setCancelable(true)
+                    setPositiveButton("Tak") { _, _ ->
+                        startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                    }
+                    setNeutralButton(
+                        "Przejdź do mapy"
+                    ) { _, _ ->
+                        Navigation.findNavController(binding.root).navigate(R.id.loading_to_map)
+                    }
+                    setNegativeButton(
+                        "Zamknij"
+                    ) { dialog, _ ->
+                        dialog.cancel()
+                    }
+                }
+                builder.create()
+                builder.show()
+            }
+        }
     }
 }

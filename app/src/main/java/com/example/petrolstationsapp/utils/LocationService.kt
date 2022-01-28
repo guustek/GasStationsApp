@@ -98,6 +98,8 @@ class LocationService {
         }
 
 
+
+
         fun isInternetAvailable(context: Context): Boolean {
             var haveConnectedWifi = false
             var haveConnectedMobile = false
