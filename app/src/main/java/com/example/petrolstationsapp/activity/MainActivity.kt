@@ -41,6 +41,7 @@ class MainActivity : DarkLightModeActivity() {
 
     companion object {
         var permissionDialogShown: Boolean = false
+        const val LOCATION_REQUEST: Int = 111
     }
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -107,10 +108,10 @@ class MainActivity : DarkLightModeActivity() {
         binding.locationButton.setOnClickListener {
             fusedLocationClient.lastLocation.addOnSuccessListener {
                 if (it != null) {
-                    locationModel.location.value = Location(it.latitude, it.longitude, getString(R.string.no_address))
-                } else {
+                    locationModel.location.value =
+                        Location(it.latitude, it.longitude, getString(R.string.no_address))
+                } else
                     buildNoGpsAlert()
-                }
             }
         }
 
@@ -135,13 +136,22 @@ class MainActivity : DarkLightModeActivity() {
             if (location != null) {
                 if (location.address == getString(R.string.no_address))
                     location.address = LocationService.getAddress(this, location.latitude, location.longitude)
-                database.locationDao().insert(location)
                 savedLocationsModel.locations.value = database.locationDao().getAll()
-                Snackbar.make(
-                    binding.root,
-                    getString(R.string.saved_location),
-                    Snackbar.LENGTH_SHORT
-                ).show()
+                if (savedLocationsModel.locations.value?.contains(location) == false) {
+                    database.locationDao().insert(location)
+                    savedLocationsModel.locations.value = database.locationDao().getAll()
+                    Snackbar.make(
+                        binding.root,
+                        getString(R.string.saved_location),
+                        Snackbar.LENGTH_SHORT
+                    ).show()
+                } else {
+                    Snackbar.make(
+                        binding.root,
+                        getString(R.string.location_exists),
+                        Snackbar.LENGTH_SHORT
+                    ).show()
+                }
             } else {
                 Snackbar.make(
                     binding.root,
@@ -165,25 +175,21 @@ class MainActivity : DarkLightModeActivity() {
                 override fun onPlaceSelected(place: Place) {
                     locationModel.location.value =
                         Location(place.latLng.latitude, place.latLng.longitude, place.address)
+                    println("nie error")
                 }
 
                 override fun onError(status: Status) {
+                    println("error")
                 }
             })
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(com.example.petrolstationsapp.R.menu.menu_main, menu)
-//        if (preferences.getBoolean("darkMode", false))
-//            menu.getItem(0).icon = getDrawable(R.drawable.search_white)
+        menuInflater.inflate(R.menu.menu_main, menu)
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         return when (item.itemId) {
             R.id.settings -> {
                 val intent = Intent(this, SettingsActivity::class.java)
@@ -192,7 +198,7 @@ class MainActivity : DarkLightModeActivity() {
             }
             R.id.saved_places -> {
                 val intent = Intent(this, SavedPlacesActivity::class.java)
-                startActivity(intent)
+                startActivityForResult(intent, LOCATION_REQUEST)
                 false
             }
             else -> super.onOptionsItemSelected(item)
@@ -246,23 +252,33 @@ class MainActivity : DarkLightModeActivity() {
     }
 
     private fun buildNoGpsAlert() {
-        if (locationModel.location.value == null) {
-            this.let {
-                val builder = AlertDialog.Builder(it)
-                builder.apply {
-                    setMessage(getString(R.string.location_off))
-                    setCancelable(true)
-                    setPositiveButton(getString(R.string.yes)) { _, _ ->
-                        startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-                    }
-                    setNegativeButton(
-                        getString(R.string.close)
-                    ) { dialog, _ ->
-                        dialog.cancel()
-                    }
+        this.let {
+            val builder = AlertDialog.Builder(it)
+            builder.apply {
+                setMessage(getString(R.string.location_off))
+                setCancelable(true)
+                setPositiveButton(getString(R.string.yes)) { _, _ ->
+                    startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                 }
-                builder.create()
-                builder.show()
+                setNegativeButton(
+                    getString(R.string.close)
+                ) { dialog, _ ->
+                    dialog.cancel()
+                }
+            }
+            builder.create()
+            builder.show()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == RESULT_OK && requestCode == LOCATION_REQUEST) {
+            if (data?.hasExtra("latitude") == true && data.hasExtra("longitude") && data.hasExtra("address")) {
+                locationModel.location.value = Location(
+                    data.getDoubleExtra("latitude", 0.0), data.getDoubleExtra("longitude", 0.0),
+                    data.getStringExtra("address")!!
+                )
             }
         }
     }

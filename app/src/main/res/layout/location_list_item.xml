@@ -64,7 +64,7 @@
                 android:background="@android:color/transparent"
                 android:clickable="true"
                 android:focusable="true"
-                android:src="@drawable/direction_icon_30x30" />
+                android:src="@drawable/map_view_icon" />
         </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

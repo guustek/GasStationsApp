@@ -35,7 +35,7 @@ class SavedLocationsFragment : Fragment() {
 
 
         binding.stationsListView.apply {
-            adapter = SavedLocationsAdapter(context, savedLocationsModel)
+            adapter = SavedLocationsAdapter(context, savedLocationsModel,activity)
             layoutManager = LinearLayoutManager(context)
         }
         binding.switchingButton.isVisible = false

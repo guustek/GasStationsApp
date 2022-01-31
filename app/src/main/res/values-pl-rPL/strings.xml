@@ -23,4 +23,5 @@
     <string name="saved_stations">Zapisane stacje</string>
     <string name="saved_locations">Zapisane lokacje</string>
     <string name="saved_location">Zapisano lokacje!</string>
+    <string name="location_exists">Ta lokacja jest już zapisana</string>
 </resources>

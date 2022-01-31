@@ -24,4 +24,5 @@
     <string name="saved_stations">Saved stations</string>
     <string name="saved_locations">Saved locations</string>
     <string name="saved_location">Saved location!</string>
+    <string name="location_exists">This location is already saved</string>
 </resources>

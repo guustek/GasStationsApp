@@ -180,7 +180,7 @@ class MapsFragment : Fragment() {
                             locationModel.location.value!!.latitude,
                             locationModel.location.value!!.longitude
                         )
-                    ).radius((preferences.getString("searchRadius", "5000.0")?.toDouble() ?: 5000.0) + 1500)
+                    ).radius((preferences.getString("searchRadius", "5000.0")?.toDouble() ?: 5000.0))
                         .strokeColor(Color.BLUE).strokeWidth(3f).fillColor(0x220000FF)
                 )
             }
