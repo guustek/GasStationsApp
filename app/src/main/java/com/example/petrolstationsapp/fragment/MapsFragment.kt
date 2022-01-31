@@ -27,7 +27,6 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.*
 
 
-
 class MapsFragment : Fragment() {
 
     private var openedInfoWindow: InfoWindow? = null
@@ -71,16 +70,14 @@ class MapsFragment : Fragment() {
         }
         map.setOnMarkerDragListener(object : GoogleMap.OnMarkerDragListener {
             override fun onMarkerDrag(p0: Marker) {
-                map.moveCamera(CameraUpdateFactory.newLatLng(p0.position))
+                map.animateCamera(CameraUpdateFactory.newLatLng(p0.position))
             }
 
             override fun onMarkerDragEnd(p0: Marker) {
-                //map.animateCamera(CameraUpdateFactory.newLatLng(p0.position))
-                locationModel.location.value = Location(p0.position.latitude, p0.position.longitude)
+                locationModel.location.value = Location(p0.position.latitude, p0.position.longitude, getString(R.string.no_address))
             }
 
             override fun onMarkerDragStart(p0: Marker) {
-                map.moveCamera(CameraUpdateFactory.newLatLng(p0.position))
             }
 
         })
@@ -111,7 +108,7 @@ class MapsFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentMapsBinding.inflate(inflater, container, false)
-        preferences = PreferenceManager.getDefaultSharedPreferences(activity)
+        preferences = PreferenceManager.getDefaultSharedPreferences(activity!!)
         preferences.registerOnSharedPreferenceChangeListener { _: SharedPreferences, key: String ->
             if (key == "showCircle")
                 updateMarkers()
@@ -207,7 +204,7 @@ class MapsFragment : Fragment() {
         val options = MarkerOptions()
         options.position(LatLng(station.location.latitude, station.location.longitude))
         options.title(station.name)
-        options.snippet("${station.rating};${station.address};${station.isOpenNow};${station.ratingsCount}")
+        options.snippet("${station.rating};${station.location.address};${station.isOpenNow};${station.ratingsCount}")
         return options
     }
 }

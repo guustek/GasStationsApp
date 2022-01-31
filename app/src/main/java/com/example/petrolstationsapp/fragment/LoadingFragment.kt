@@ -32,15 +32,14 @@ class LoadingFragment : Fragment() {
         _binding = FragmentLoadingBinding.inflate(inflater, container, false)
 
         locationModel = ViewModelProvider(requireActivity())[LocationViewModel::class.java]
-        locationModel.location.observe(viewLifecycleOwner) {
-            Navigation.findNavController(binding.root).navigate(R.id.loading_to_map)
-        }
 
         val locationManager = activity?.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) && !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER))
             buildNoGpsAlert()
 
+        locationModel.location.observe(viewLifecycleOwner) {
+            Navigation.findNavController(binding.root).navigate(R.id.loading_to_map)
+        }
         return binding.root
     }
 
@@ -49,18 +48,18 @@ class LoadingFragment : Fragment() {
             activity?.let {
                 val builder = AlertDialog.Builder(it)
                 builder.apply {
-                    setMessage("Lokalizacja wyłączona, czy chcesz ją włączyć?")
+                    setMessage(R.string.location_off)
                     setCancelable(true)
-                    setPositiveButton("Tak") { _, _ ->
+                    setPositiveButton(R.string.yes) { _, _ ->
                         startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
                     }
                     setNeutralButton(
-                        "Przejdź do mapy"
+                        getString(R.string.go_to_map)
                     ) { _, _ ->
                         Navigation.findNavController(binding.root).navigate(R.id.loading_to_map)
                     }
                     setNegativeButton(
-                        "Zamknij"
+                        R.string.close
                     ) { dialog, _ ->
                         dialog.cancel()
                     }

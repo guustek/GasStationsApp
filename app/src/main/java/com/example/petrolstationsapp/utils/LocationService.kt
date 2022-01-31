@@ -5,6 +5,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Address
+import android.location.Geocoder
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
@@ -14,9 +16,12 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
 import androidx.core.content.ContextCompat
+import com.example.petrolstationsapp.R
 import com.example.petrolstationsapp.activity.MainActivity
 import com.example.petrolstationsapp.activity.SplashScreenActivity
 import com.google.android.material.snackbar.Snackbar
+import java.io.IOException
+import java.util.*
 
 
 class LocationService {
@@ -65,10 +70,10 @@ class LocationService {
             if (shouldShowRequestPermissionRationale(activity, Manifest.permission.ACCESS_FINE_LOCATION)) {
                 val snackbar = Snackbar.make(
                     view,
-                    "Nie uzyskano zgody na lokalizacje! Aplikacja nie będzie działać",
+                    activity.getString(R.string.no_location_permission),
                     Snackbar.LENGTH_INDEFINITE
                 )
-                snackbar.setAction("Zezwól") {
+                snackbar.setAction(activity.getString(R.string.allow)) {
                     ActivityCompat.requestPermissions(
                         activity,
                         arrayOf(
@@ -83,10 +88,10 @@ class LocationService {
             } else {
                 val snackbar = Snackbar.make(
                     view,
-                    "Nie uzyskano zgody na lokalizacje! Aplikacja nie będzie działać",
+                    activity.getString(R.string.no_location_permission),
                     Snackbar.LENGTH_INDEFINITE
                 )
-                snackbar.setAction("Ustawienia") {
+                snackbar.setAction(activity.getString(R.string.settings)) {
                     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     val uri: Uri = Uri.fromParts("package", activity.packageName, null)
@@ -95,6 +100,23 @@ class LocationService {
                 }
                 snackbar.show()
             }
+        }
+
+        fun getAddress(context:Context,latitude: Double, longitude: Double): String {
+            var result = context.getString(R.string.no_address)
+            val builder = StringBuilder()
+            try {
+                val geocoder = Geocoder(context, Locale.getDefault())
+                val addresses: List<Address> = geocoder.getFromLocation(latitude, longitude, 1)
+                if (addresses.isNotEmpty()) {
+                    val address: Address = addresses[0]
+                    builder.append(address.getAddressLine(0))
+                    result=builder.toString()
+                }
+            } catch (_: IOException) {
+
+            }
+            return result
         }
 
 

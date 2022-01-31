@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/saved_places_nav_graph"
+    app:startDestination="@id/savedStationsFragment">
+
+    <fragment
+        android:id="@+id/savedStationsFragment"
+        android:name="com.example.petrolstationsapp.fragment.SavedStationsFragment"
+        android:label="SavedStationsFragment" >
+        <action
+            android:id="@+id/saved_stations_to_saved_locations"
+            app:destination="@id/savedLocationsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/savedLocationsFragment"
+        android:name="com.example.petrolstationsapp.fragment.SavedLocationsFragment"
+        android:label="SavedLocationsFragment" >
+        <action
+            android:id="@+id/saved_locations_to_saved_stations"
+            app:destination="@id/savedStationsFragment" />
+    </fragment>
+</navigation>

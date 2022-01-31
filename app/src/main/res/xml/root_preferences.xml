@@ -1,26 +1,27 @@
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory app:title="Mapa">
+    <PreferenceCategory android:title="@string/map">
 
         <EditTextPreference
-            android:defaultValue="5000.0"
+            android:defaultValue="5000"
             android:inputType="numberDecimal"
             android:key="searchRadius"
             android:singleLine="true"
-            android:title="Promień wyszukiwania" />
+            android:title="@string/search_radius" />
 
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="Wyświetlanie">
+    <PreferenceCategory android:title="@string/display">
 
         <SwitchPreferenceCompat
-            app:key="showCircle"
-            app:title="Pokaż zakres wyszukiwania" />
+            android:key="showCircle"
+            android:defaultValue="true"
+            android:title="@string/show_radius" />
 
         <SwitchPreferenceCompat
-            app:key="darkMode"
-            app:title="Tryb ciemny" />
+            android:key="darkMode"
+            android:title="@string/dark_mode"
+            android:defaultValue="false"/>
     </PreferenceCategory>
 
 </PreferenceScreen>

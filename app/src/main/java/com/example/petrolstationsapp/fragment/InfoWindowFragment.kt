@@ -13,7 +13,10 @@ import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import com.example.petrolstationsapp.R
+import com.example.petrolstationsapp.database.MyDatabase
 import com.example.petrolstationsapp.databinding.StationInfoBinding
+import com.example.petrolstationsapp.model.Location
+import com.example.petrolstationsapp.model.Station
 import com.google.android.gms.maps.model.Marker
 
 class InfoWindowFragment(private val marker: Marker, private val isNightMode: Boolean) : Fragment() {
@@ -33,6 +36,18 @@ class InfoWindowFragment(private val marker: Marker, private val isNightMode: Bo
         val address = snippet[1]
         val isOpenNow = if (snippet[2] == "null") null else snippet[2].toBoolean()
         val ratingsCount = snippet[3].toInt()
+
+        val item = Station(
+            title,
+            Location(marker.position.latitude, marker.position.longitude, address),
+            rating,
+            isOpenNow,
+            ratingsCount
+        )
+        val savedStations = MyDatabase.getDatabase(activity!!).stationDao().getAll()
+        binding.favoriteButton.setImageResource(R.drawable.not_favorite_30x30)
+        if (savedStations?.contains(item) == true)
+            binding.favoriteButton.setImageResource(R.drawable.favorite_30x30)
 
         binding.name.text = title
         if (rating == 0f) binding.rating.isVisible = false else binding.rating.rating = rating
@@ -58,6 +73,18 @@ class InfoWindowFragment(private val marker: Marker, private val isNightMode: Bo
         }
         if (isNightMode)
             binding.root.setBackgroundColor(resources.getColor(R.color.cardview_dark_background))
+
+        binding.favoriteButton.setOnClickListener {
+            val saved = MyDatabase.getDatabase(activity!!).stationDao().getAll()
+            val station = saved?.find { it == item }
+            if (station == null) {
+                MyDatabase.getDatabase(activity!!).stationDao().insert(item)
+                binding.favoriteButton.setImageResource(R.drawable.favorite_30x30)
+            } else {
+                MyDatabase.getDatabase(activity!!).stationDao().delete(station)
+                binding.favoriteButton.setImageResource(R.drawable.not_favorite_30x30)
+            }
+        }
         return binding.root
     }
 

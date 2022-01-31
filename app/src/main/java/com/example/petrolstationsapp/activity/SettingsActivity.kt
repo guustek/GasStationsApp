@@ -19,8 +19,8 @@ class SettingsActivity : DarkLightModeActivity(),SharedPreferences.OnSharedPrefe
                 .replace(R.id.settings, SettingsFragment())
                 .commit()
         }
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title=getString(R.string.title_settings)
+        supportActionBar?.setDisplayHomeAsUpEnabled(false)
+        supportActionBar?.title=getString(R.string.settings)
     }
 
     override fun onResume() {

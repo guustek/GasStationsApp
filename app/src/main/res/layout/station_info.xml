@@ -21,7 +21,6 @@
             android:id="@+id/name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="XD"
             android:textSize="16sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
@@ -47,15 +46,13 @@
             <TextView
                 android:id="@+id/ratingsCount"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="XD" />
+                android:layout_height="wrap_content" />
         </LinearLayout>
 
         <TextView
             android:id="@+id/address"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="XD"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/linearLayout3" />
 
@@ -63,7 +60,6 @@
             android:id="@+id/is_open_now"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="XD"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/address" />
 
@@ -71,7 +67,6 @@
             android:id="@+id/distance"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="XD"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -95,8 +90,7 @@
             android:background="@android:color/transparent"
             android:clickable="true"
             android:focusable="true"
-            android:src="@drawable/not_favorite_30x30"
-            android:tooltipText="Dodaj do ulubionych" />
+            android:src="@drawable/not_favorite_30x30" />
 
         <ImageButton
             android:id="@+id/direction_button"
@@ -105,8 +99,7 @@
             android:background="@android:color/transparent"
             android:clickable="true"
             android:focusable="true"
-            android:src="@drawable/direction_icon_30x30"
-            android:tooltipText="Przejdź do nawigacji" />
+            android:src="@drawable/direction_icon_30x30" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

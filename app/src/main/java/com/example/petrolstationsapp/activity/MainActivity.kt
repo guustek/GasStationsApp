@@ -10,18 +10,21 @@ import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AlertDialog
-import androidx.lifecycle.ViewModelProvider
-import androidx.navigation.Navigation
+import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.findNavController
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.example.petrolstationsapp.R
+import com.example.petrolstationsapp.database.MyDatabase
 import com.example.petrolstationsapp.databinding.ActivityMainBinding
 import com.example.petrolstationsapp.model.Location
 import com.example.petrolstationsapp.utils.DataParser
+import com.example.petrolstationsapp.utils.LocationService
 import com.example.petrolstationsapp.viewmodel.LocationViewModel
+import com.example.petrolstationsapp.viewmodel.SavedLocationsViewModel
+import com.example.petrolstationsapp.viewmodel.SavedStationsViewModel
 import com.example.petrolstationsapp.viewmodel.StationViewModel
 import com.google.android.gms.common.api.Status
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -40,8 +43,6 @@ class MainActivity : DarkLightModeActivity() {
         var permissionDialogShown: Boolean = false
     }
 
-    private val AUTOCOMPLETE_RESULT_CODE: Int = 2115
-
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationManager: LocationManager
     private lateinit var networkLocationListener: LocationListener
@@ -49,6 +50,12 @@ class MainActivity : DarkLightModeActivity() {
 
     private lateinit var stationsModel: StationViewModel
     private lateinit var locationModel: LocationViewModel
+
+    private lateinit var savedStationsModel: SavedStationsViewModel
+    private lateinit var savedLocationsModel: SavedLocationsViewModel
+
+    private lateinit var database: MyDatabase
+
     private lateinit var binding: ActivityMainBinding
 
 
@@ -58,12 +65,19 @@ class MainActivity : DarkLightModeActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
 
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayShowTitleEnabled(false)
         setContentView(binding.root)
 
+        stationsModel = ViewModelProviders.of(this)[StationViewModel::class.java]
+        locationModel = ViewModelProviders.of(this)[LocationViewModel::class.java]
 
-        stationsModel = ViewModelProvider(this)[StationViewModel::class.java]
-        locationModel = ViewModelProvider(this)[LocationViewModel::class.java]
+        savedStationsModel = ViewModelProviders.of(this)[SavedStationsViewModel::class.java]
+        savedLocationsModel = ViewModelProviders.of(this)[SavedLocationsViewModel::class.java]
+
+        database = MyDatabase.getDatabase(this)
+
+        savedStationsModel.stations.value = database.stationDao().getAll()
+        savedLocationsModel.locations.value = database.locationDao().getAll()
+
 
         Places.initialize(applicationContext, getString(R.string.google_maps_key))
         val placesClient = Places.createClient(this)
@@ -72,71 +86,30 @@ class MainActivity : DarkLightModeActivity() {
 
         gpsLocationListener = LocationListener {
             if (locationModel.location.value == null) {
-                locationModel.location.value = Location(it.latitude, it.longitude)
+                locationModel.location.value = Location(it.latitude, it.longitude, getString(R.string.no_address))
                 locationManager.removeUpdates(gpsLocationListener)
             } else
                 locationManager.removeUpdates(gpsLocationListener)
         }
         networkLocationListener = LocationListener {
             if (locationModel.location.value == null) {
-                locationModel.location.value = Location(it.latitude, it.longitude)
+                locationModel.location.value = Location(it.latitude, it.longitude, getString(R.string.no_address))
                 locationManager.removeUpdates(networkLocationListener)
             } else
                 locationManager.removeUpdates(networkLocationListener)
         }
 
-        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) && !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER))
-            buildNoGpsAlert()
-        else {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, gpsLocationListener)
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0f, networkLocationListener)
-        }
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1, 1f, gpsLocationListener)
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1, 1f, networkLocationListener)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-//        fusedLocationClient.lastLocation.addOnSuccessListener {
-//            if (it != null) {
-//                locationModel.location.value = Location(it.latitude, it.longitude)
-//            } else {
-//                val builder = AlertDialog.Builder(this)
-//                builder.apply {
-//                    setMessage("Lokalizacja wyłączona, czy chcesz ją włączyć?")
-//                    setCancelable(true)
-//                    setPositiveButton("Tak") { _, _ ->
-//                        startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-//                    }
-//
-//                    setNegativeButton(
-//                        "Zamknij"
-//                    ) { dialog, _ ->
-//                        dialog.cancel()
-//                    }
-//                }
-//                builder.create()
-//                builder.show()
-//            }
-//        }
 
         binding.locationButton.setOnClickListener {
             fusedLocationClient.lastLocation.addOnSuccessListener {
                 if (it != null) {
-                    locationModel.location.value = Location(it.latitude, it.longitude)
+                    locationModel.location.value = Location(it.latitude, it.longitude, getString(R.string.no_address))
                 } else {
-                    val builder = AlertDialog.Builder(this)
-                    builder.apply {
-                        setMessage("Lokalizacja wyłączona, czy chcesz ją włączyć?")
-                        setCancelable(true)
-                        setPositiveButton("Tak") { _, _ ->
-                            startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-                        }
-
-                        setNegativeButton(
-                            "Zamknij"
-                        ) { dialog, _ ->
-                            dialog.cancel()
-                        }
-                    }
-                    builder.create()
-                    builder.show()
+                    buildNoGpsAlert()
                 }
             }
         }
@@ -146,22 +119,36 @@ class MainActivity : DarkLightModeActivity() {
             if (location != null)
                 getPlaces(
                     this, location.latitude, location.longitude,
-                    preferences.getString("searchRadius", "5000.0")?.toDouble() ?: 5000.0
+                    preferences.getString("searchRadius", "5000.0")?.toDouble()!!
                 )
             else {
                 Snackbar.make(
                     binding.root,
-                    "Nie wybrano lokalizacji!",
+                    getString(R.string.no_location),
                     Snackbar.LENGTH_LONG
                 ).show()
             }
-//            else{
-//                Snackbar.make(
-//                    binding.root,
-//                    "Brak połączenia internetowego!",
-//                    Snackbar.LENGTH_LONG
-//                ).show()
-//            }
+        }
+
+        binding.saveLocationButton.setOnClickListener {
+            val location = locationModel.location.value
+            if (location != null) {
+                if (location.address == getString(R.string.no_address))
+                    location.address = LocationService.getAddress(this, location.latitude, location.longitude)
+                database.locationDao().insert(location)
+                savedLocationsModel.locations.value = database.locationDao().getAll()
+                Snackbar.make(
+                    binding.root,
+                    getString(R.string.saved_location),
+                    Snackbar.LENGTH_SHORT
+                ).show()
+            } else {
+                Snackbar.make(
+                    binding.root,
+                    getString(R.string.no_location),
+                    Snackbar.LENGTH_LONG
+                ).show()
+            }
         }
 
         val autocompleteFragment =
@@ -177,7 +164,7 @@ class MainActivity : DarkLightModeActivity() {
             object : PlaceSelectionListener {
                 override fun onPlaceSelected(place: Place) {
                     locationModel.location.value =
-                        Location(place.latLng.latitude, place.latLng.longitude)
+                        Location(place.latLng.latitude, place.latLng.longitude, place.address)
                 }
 
                 override fun onError(status: Status) {
@@ -187,7 +174,7 @@ class MainActivity : DarkLightModeActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_main, menu)
+        menuInflater.inflate(com.example.petrolstationsapp.R.menu.menu_main, menu)
 //        if (preferences.getBoolean("darkMode", false))
 //            menu.getItem(0).icon = getDrawable(R.drawable.search_white)
         return true
@@ -201,7 +188,12 @@ class MainActivity : DarkLightModeActivity() {
             R.id.settings -> {
                 val intent = Intent(this, SettingsActivity::class.java)
                 startActivity(intent)
-                true
+                false
+            }
+            R.id.saved_places -> {
+                val intent = Intent(this, SavedPlacesActivity::class.java)
+                startActivity(intent)
+                false
             }
             else -> super.onOptionsItemSelected(item)
         }
@@ -213,11 +205,24 @@ class MainActivity : DarkLightModeActivity() {
                 || super.onSupportNavigateUp()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (locationModel.location.value == null) {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0f, gpsLocationListener)
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0f, networkLocationListener)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        locationManager.removeUpdates(gpsLocationListener)
+        locationManager.removeUpdates(networkLocationListener)
+    }
 
     private fun getPlaces(context: Context, latitude: Double, longitude: Double, radius: Double) {
 
-
         val queue: RequestQueue = Volley.newRequestQueue(context)
+
         val baseUrl = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?"
         val builder: StringBuilder = StringBuilder()
         builder.append(baseUrl)
@@ -231,32 +236,27 @@ class MainActivity : DarkLightModeActivity() {
         val request = StringRequest(Request.Method.GET, requestUrl,
             {
                 if (it != null) {
-                    stationsModel.stations.value = DataParser.parseStationsResponse(it)
+                    stationsModel.stations.value = DataParser.parseStationsResponse(it, this)
                 }
             },
             {
-                Snackbar.make(binding.root, "Brak połączenia internetowego!", Snackbar.LENGTH_INDEFINITE).show()
+                Snackbar.make(binding.root, getString(R.string.no_internet), Snackbar.LENGTH_INDEFINITE).show()
             })
         queue.add(request)
     }
 
     private fun buildNoGpsAlert() {
         if (locationModel.location.value == null) {
-           this.let {
+            this.let {
                 val builder = AlertDialog.Builder(it)
                 builder.apply {
-                    setMessage("Lokalizacja wyłączona, czy chcesz ją włączyć?")
+                    setMessage(getString(R.string.location_off))
                     setCancelable(true)
-                    setPositiveButton("Tak") { _, _ ->
+                    setPositiveButton(getString(R.string.yes)) { _, _ ->
                         startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
                     }
-                    setNeutralButton(
-                        "Przejdź do mapy"
-                    ) { _, _ ->
-                        Navigation.findNavController(binding.root).navigate(R.id.loading_to_map)
-                    }
                     setNegativeButton(
-                        "Zamknij"
+                        getString(R.string.close)
                     ) { dialog, _ ->
                         dialog.cancel()
                     }
