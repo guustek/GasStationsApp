@@ -79,10 +79,6 @@ class MainActivity : DarkLightModeActivity() {
         savedStationsModel.stations.value = database.stationDao().getAll()
         savedLocationsModel.locations.value = database.locationDao().getAll()
 
-
-        Places.initialize(applicationContext, getString(R.string.google_maps_key))
-        val placesClient = Places.createClient(this)
-
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
         gpsLocationListener = LocationListener {
